@@ -156,7 +156,7 @@ def get_xray_watch_violations(server_base_url, access_token, watch_name):
     
     header = [
         "Type", "WatchName", "Severity", "RepoNameOfImpactedArtifact", "ImpactedArtifacts", 
-        "CVEID", "CVSSV3", "InfectedComponents", "InfectedVersions", "Fixed_Versions", 
+        "CVEID", "CVSSV3", "InfectedComponents", "InfectedVersions", "FixedVersions", 
         "Description", "JFrogResearchSummary", "JFrogResearchDetails", "JFrogResearchRemediation"
     ]
     
