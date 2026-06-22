@@ -1,0 +1,120 @@
+IndexAllArtifactsOfRepos.sh
+===========================
+
+Triggers Xray indexing for repositories that are not fully indexed. The script
+checks index completion for each repository in the input file, identifies repos
+below 100%, triggers Xray indexing, and then waits for each repository to reach
+100% before moving to the next one.
+
+
+Prerequisites
+-------------
+
+  - bash
+  - curl
+  - jq
+  - A JFrog Access Token with permission to call Artifactory and Xray APIs
+
+
+Usage
+-----
+
+  ./IndexAllArtifactsOfRepos.sh <ARTIFACTORY_URL> <ACCESS_TOKEN> <REPO_LIST_FILE>
+
+Show built-in help:
+
+  ./IndexAllArtifactsOfRepos.sh --help
+
+
+Arguments
+---------
+
+  ARTIFACTORY_URL   (required)  Base Artifactory URL
+                                e.g. https://mycompany.jfrog.io/artifactory
+
+  ACCESS_TOKEN      (required)  JFrog Access Token (Bearer)
+
+  REPO_LIST_FILE    (required)  Text file with one repository name per line
+                                (maximum 5 repositories per run)
+
+
+Constants
+---------
+
+These are defined at the top of the script. Edit them to change behaviour
+without modifying any logic.
+
+  MAX_REPOS              Maximum repos allowed per run.
+                         Script exits if input file exceeds this.
+                         Default: 5
+
+  POLL_INTERVAL          Seconds to wait between each index status poll
+                         while monitoring a repo.
+                         Default: 120
+
+  WAIT_FOR_COMPLETION    Controls behaviour after triggering indexing.
+                         true  = wait indefinitely until repo reaches 100%
+                                 before moving to the next repo (recommended).
+                         false = timeout after MAX_POLL_ATTEMPTS polls and
+                                 skip the repo.
+                         Default: true
+
+  MAX_POLL_ATTEMPTS      Maximum number of polls before skipping a repo.
+                         Only active when WAIT_FOR_COMPLETION=false.
+                         Default: 10
+
+
+How It Works
+------------
+
+  1. Validates that REPO_LIST_FILE exists and contains no more than MAX_REPOS repos
+  2. Fetches index status (completed, potential, percentage) for each repo
+  3. Identifies repositories with index completion below 100%
+  4. For each repo, triggers Xray indexing via the index API
+  5. Polls index status every POLL_INTERVAL seconds, printing attempt number
+     and current percentage on each poll
+  6. If WAIT_FOR_COMPLETION=true:
+       Waits until repo reaches 100%, then moves to the next repo
+  7. If WAIT_FOR_COMPLETION=false:
+       Skips the repo after MAX_POLL_ATTEMPTS attempts and moves on
+
+
+Notes
+-----
+
+  - WAIT_FOR_COMPLETION=true is strongly recommended. It ensures each repo is
+    fully indexed before the next one starts, preventing concurrent load on
+    Artifactory.
+
+  - WAIT_FOR_COMPLETION=false is useful when the script must finish within a
+    known time window, but any skipped repos (those that did not reach 100%
+    within MAX_POLL_ATTEMPTS) will need to be re-run manually.
+
+  - Indexing may take significant time depending on repo size and artifact count.
+
+  - REPO_LIST_FILE must contain one repository name per line (not a CSV).
+    Extract repo names from GetIndexStatus.sh output before using as input.
+
+  - Repositories must already have Xray indexing enabled.
+    Use EnableIndexingForRepos.sh first if needed.
+
+  - Monitor Artifactory resource usage while the script is running.
+    Stop the script if you observe performance degradation.
+
+
+Examples
+--------
+
+Index artifacts for repositories listed in repos.txt (wait mode, default):
+
+  ./IndexAllArtifactsOfRepos.sh https://mycompany.jfrog.io/artifactory $JFROG_ACCESS_TOKEN repos.txt
+
+To use timeout mode, edit the script constants before running:
+
+  WAIT_FOR_COMPLETION=false
+  MAX_POLL_ATTEMPTS=10
+
+Example repos.txt format (one repo per line, max 5):
+
+  my-local-repo
+  my-federated-repo

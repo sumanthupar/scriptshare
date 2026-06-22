@@ -1,0 +1,101 @@
+GetIndexStatus.sh
+=================
+
+Reports Xray indexing status for JFrog Artifactory repositories. The script
+queries Artifactory and Xray APIs, writes CSV reports, and highlights
+repositories that are not fully indexed.
+
+
+Prerequisites
+-------------
+
+  - bash
+  - curl
+  - jq
+  - A JFrog Access Token with permission to call Artifactory and Xray APIs
+
+
+Usage
+-----
+
+  ./GetIndexStatus.sh <ARTIFACTORY_URL> <ACCESS_TOKEN> [REPO_LIST_FILE]
+
+Show built-in help:
+
+  ./GetIndexStatus.sh --help
+
+
+Arguments
+---------
+
+  ARTIFACTORY_URL   (required)  Base Artifactory URL
+                                e.g. https://mycompany.jfrog.io/artifactory
+
+  ACCESS_TOKEN      (required)  JFrog Access Token (Bearer)
+
+  REPO_LIST_FILE    (optional)  Text file with one repository name per line
+
+
+Operating Modes
+---------------
+
+Discovery mode (no repo list file)
+  When REPO_LIST_FILE is omitted, the script:
+
+    1. Fetches storage summary from Artifactory
+    2. Discovers all Xray-indexed repositories
+    3. Identifies repositories not indexed in Xray at all
+    4. Fetches per-repo index completion for every indexed repository
+    5. Writes repos with index progress below 100%
+
+Targeted mode (repo list file provided)
+  When REPO_LIST_FILE is provided, the script:
+
+    1. Fetches storage summary from Artifactory
+    2. Fetches index status only for repositories listed in the file
+    3. Writes repos with index progress below 100%
+
+
+Output Files
+------------
+
+All output files are written to the current working directory.
+
+  repos_index_statusfile.csv
+    Index status for all checked repos.
+    Columns: Reponame, Completed, Potential, Percentage, Size
+
+  repos_not_fully_indexed.csv
+    Subset of repos where indexing is below 100%
+    (excludes repos with 0/0 completed/potential)
+
+  repos_not_indexed.csv  (discovery mode only)
+    Repos with content that are not indexed in Xray at all.
+    Columns: RepoName, PackageType, RepoType, FilesCount, Size
+
+  storagesummary.json
+    Artifactory storage summary (cache repo names normalized by
+    removing -cache suffix)
+
+CSV column meanings
+  Completed   - Number of artifacts already indexed by Xray
+  Potential   - Total number of artifacts eligible for indexing
+  Percentage  - Completed / Potential * 100 (integer)
+  Size        - Repository used space from Artifactory storage summary
+
+
+Examples
+--------
+
+Check all indexed repositories (discovery mode):
+
+  ./GetIndexStatus.sh https://mycompany.jfrog.io/artifactory $JFROG_ACCESS_TOKEN
+
+Check a specific list of repositories:
+
+  ./GetIndexStatus.sh https://mycompany.jfrog.io/artifactory $JFROG_ACCESS_TOKEN repos.txt
+
+Example repos.txt format (one repo per line):
+
+  my-local-repo
+  my-federated-repo

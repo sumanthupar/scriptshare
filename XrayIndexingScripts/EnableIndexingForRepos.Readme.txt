@@ -1,0 +1,70 @@
+EnableIndexingForRepos.sh
+=========================
+
+Enables Xray indexing for repositories listed in a file. The script checks
+which repositories are already indexed in Xray and enables indexing only for
+those that are not.
+
+
+Prerequisites
+-------------
+
+  - bash
+  - curl
+  - jq
+  - A JFrog Access Token with permission to call Artifactory and Xray APIs
+
+
+Usage
+-----
+
+  ./EnableIndexingForRepos.sh <ARTIFACTORY_URL> <ACCESS_TOKEN> <REPO_FILE>
+
+
+Arguments
+---------
+
+  ARTIFACTORY_URL   (required)  Base Artifactory URL
+                                e.g. https://mycompany.jfrog.io/artifactory
+
+  ACCESS_TOKEN      (required)  JFrog Access Token (Bearer)
+
+  REPO_FILE         (required)  Text file with one repository name per line
+
+
+How It Works
+------------
+
+  1. Fetches the list of repositories already indexed in Xray
+  2. Reads each repository name from REPO_FILE
+  3. Skips repositories that already have indexing enabled
+  4. For remaining repositories, enables Xray indexing via the Artifactory
+     repository configuration API
+
+
+Output Files
+------------
+
+All files are written to the current working directory.
+
+  indexed_repos.txt
+    List of repository names currently indexed in Xray (fetched at startup)
+
+  temp.json
+    Payload file used for the enable request: {"xrayIndex": true}
+
+
+Examples
+--------
+
+Enable indexing for repositories listed in repos.txt:
+
+  ./EnableIndexingForRepos.sh https://mycompany.jfrog.io/artifactory $JFROG_ACCESS_TOKEN repos.txt
+
+REPO_FILE must contain one repository name per line (not a CSV). Extract repo
+names from GetIndexStatus.sh output before using as input.
+
+Example repos.txt format:
+
+  my-local-repo
+  my-federated-repo
