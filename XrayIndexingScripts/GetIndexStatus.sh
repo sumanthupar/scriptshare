@@ -44,7 +44,7 @@ GetStorageSummary() {
     "$ARTIFACTORY_URL/artifactory/api/storageinfo" \
     | jq '.repositoriesSummaryList' > storagesummary.json
   sleep 1
-  sed -i '' 's/-cache//g' storagesummary.json
+  sed -i 's/-cache//g' storagesummary.json
 }
 
 GetNonIndexedRepos() {
